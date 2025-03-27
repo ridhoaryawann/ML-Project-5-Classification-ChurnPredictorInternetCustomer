@@ -153,3 +153,69 @@ This project demonstrates:
 - Trying multiple machine learning models
 - Hyperparameter tuning using GridSearchCV
 - Saving & deploying a model with Streamlit
+
+## 🔁 Additional: Pipeline Integration
+
+This section adds a pipeline-based workflow using `ColumnTransformer` and `FunctionTransformer` to automate preprocessing and modeling.
+
+### ⚙️ Preprocessing Pipeline
+
+```python
+from sklearn.preprocessing import FunctionTransformer, StandardScaler
+from sklearn.compose import ColumnTransformer
+import numpy as np
+
+# Gender transformer using np.where (Female = 1, Male = 0)
+def gender_transform(x):
+    return np.where(x == 'Female', 1, 0).astype(int)
+
+gender_transformer = FunctionTransformer(gender_transform, validate=False)
+
+# Combine gender transformation and scaling
+dataprep = ColumnTransformer([
+    ('gender', gender_transformer, ['Gender']),
+    ('scaler', StandardScaler(), ['Age', 'Tenure', 'MonthlyCharges'])
+])
+```
+
+### 🛠️ Pipeline per Model
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+
+pipe_log = Pipeline([('dataprep', dataprep), ('log_model', LogisticRegression())])
+pipe_knn = Pipeline([('dataprep', dataprep), ('knnmodel', KNeighborsClassifier())])
+pipe_svc = Pipeline([('dataprep', dataprep), ('svc', SVC())])
+pipe_dt  = Pipeline([('dataprep', dataprep), ('dt', DecisionTreeClassifier())])
+```
+
+### 🔍 GridSearch Example (KNN)
+
+```python
+from sklearn.model_selection import GridSearchCV
+
+param_knn = {
+    "knnmodel__n_neighbors": [3, 5, 7],
+    "knnmodel__weights": ['uniform', 'distance']
+}
+
+grid_knn = GridSearchCV(pipe_knn, param_knn, cv=5)
+grid_knn.fit(X_train, y_train)
+```
+
+### ✅ Model Evaluation and Export
+
+```python
+from sklearn.metrics import accuracy_score
+import joblib
+
+# Evaluate best model manually
+joblib.dump(dataprep, 'pipeline.pkl')
+joblib.dump(best_model, 'best_model_using_pipeline.pkl')
+```
+
+> ✅ This ensures data leakage is avoided by including all preprocessing inside the pipeline.
